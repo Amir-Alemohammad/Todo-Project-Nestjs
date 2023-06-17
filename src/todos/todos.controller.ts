@@ -25,20 +25,22 @@ export class TodosController {
     return this.todosService.findOne(id);
   }
 
-  @Get('/completed/:id')
+  @Get('completed/:id')
+  @UseGuards(jwtAuthGuard)
   Completed(@Param('id') id:number){
     return this.todosService.completedTodo(id)
   }
 
-  @Put(':id')
+  @Put('update/:id')
   @UseGuards(jwtAuthGuard)
-  update(@Param('id') id: number, @Body() updateTodoDto: UpdateTodoDto) {
+  update(@Param('id') id: number, @Body() updateTodoDto: UpdateTodoDto , @Request() req) {
+    updateTodoDto.user = req.user;
     return this.todosService.update(id, updateTodoDto);
   }
 
-  @Delete(':id')
+  @Delete('delete/:id')
   @UseGuards(jwtAuthGuard)
-  remove(@Param('id') id: number) {
-    return this.todosService.remove(id);
+  remove(@Param('id') id: number , @Request() request) {
+    return this.todosService.remove(id,request.user);
   }
 }

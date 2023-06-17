@@ -4,6 +4,7 @@ import { UpdateTodoDto } from './dto/update-todo.dto';
 import { Todo } from './entities/todo.entity';
 import {Repository} from "typeorm"
 import {InjectRepository} from "@nestjs/typeorm"
+import { userGuard } from 'src/users/dto/userGuard.dto';
 
 @Injectable()
 export class TodosService {
@@ -62,11 +63,33 @@ export class TodosService {
   }
 
 
-  update(id: number, updateTodoDto: UpdateTodoDto) {
-    return `This action updates a #${id} todo`;
+  async update(id: number, updateTodoDto: UpdateTodoDto) {
+    const completedTodo = await this.findOne(id);
+    if(completedTodo.todo.completed === true){
+      throw new HttpException("You Can't Update Completed Todo",400);
+    }
+    const check = await this.todoRepository.update({id , user : updateTodoDto.user },{ ...updateTodoDto });
+    if(check.affected === 0){
+      throw new HttpException("Todo Not Found",404);
+    }
+    return{
+      statusCode:200,
+      message: "Todo Updated",
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} todo`;
+  async remove(id: number,user : userGuard) {
+    const check = await this.todoRepository.createQueryBuilder("Todo")
+    .leftJoinAndSelect("Todo.user",'user')
+    .where('Todo.id = :id',{id})
+    .andWhere('Todo.user = :user',{user : user.id})
+    .getOne();
+    if(!check){
+      throw new HttpException("Product Not Found",404);
+    }    
+    await this.todoRepository.remove(check)
+    return {
+      message: "Todo deleted!"
+    }
   }
 }
